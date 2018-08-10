@@ -115,7 +115,7 @@ print_error_line(const char *filename, ssize_t line)
         || !strcmp(filename, "<stdin>"))
         return;
 
-    buf = (char *)malloc(32 * sizeof(char));
+    buf = (char *)malloc(32);
 
     file = fopen(filename, "r");
     if (!file)
