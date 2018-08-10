@@ -181,7 +181,7 @@
  * For Linux, get gcc includes too, or you will miss things like stddef.h.
  * The exact path varies much, depending on the distribution.
  */
-#define STD_INCLUDE_PATH	"/usr/local/include", "/usr/include"
+#define STD_INCLUDE_PATH		0
 
 /* ====================================================================== */
 /*
@@ -235,20 +235,21 @@
 /*
  * For native type evaluation with a 64-bit "long long" type.
  */
-#define NATIVE_SIGNED           long long
-#define NATIVE_UNSIGNED         unsigned long long
-#define NATIVE_UNSIGNED_BITS    64
-#define NATIVE_SIGNED_MIN       (-9223372036854775807LL - 1)
-#define NATIVE_SIGNED_MAX       9223372036854775807LL
+#define NATIVE_SIGNED           int
+#define NATIVE_UNSIGNED         unsigned int
+#define NATIVE_UNSIGNED_BITS    32
+#define NATIVE_SIGNED_MIN       (-2147483647 - 1)
+#define NATIVE_SIGNED_MAX       2147483647
 
 /*
  * For emulation of a 64-bit type using a native 32-bit "unsigned long"
  * type.
+
 #undef NATIVE_SIGNED
 #define SIMUL_ARITH_SUBTYPE     unsigned long
 #define SIMUL_SUBTYPE_BITS      32
-#define SIMUL_NUMBITS           64
- */
+#define SIMUL_NUMBITS           32
+*/
 
 /*
  * Comment out the following line if you want to deactivate arithmetic
@@ -318,7 +319,7 @@
  * This is non-ANSI, but it improves performance on some POSIX system.
  * On typical C source code, such improvement is completely negligeable.
  */
-/* #define POSIX_JMP */
+#define POSIX_JMP
 
 /* ====================================================================== */
 /*
@@ -332,7 +333,7 @@
  * that lexer.c defines a static array of size MSTATE * MAX_CHAR_VAL
  * values of type int (MSTATE is defined in lexer.c and is about 40).
  */
-#define MAX_CHAR_VAL	128
+#define MAX_CHAR_VAL	256
 
 /*
  * If you want some extra character to be considered as whitespace,
@@ -350,7 +351,7 @@
  * it might slow down a bit ucpp, and with this option, comments will be
  * kept inside #pragma directives).
  */
-/* #define SEMPER_FIDELIS */
+#define SEMPER_FIDELIS
 
 #endif
 /* End of options overridable by UCPP_CONFIG and config.h */

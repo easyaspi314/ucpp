@@ -569,7 +569,7 @@ static int op_prec(int op)
 static ppval eval_shrd(struct token_fifo *tf, int minprec, int do_eval)
 {
 	ppval top;
-	struct token *ct;
+	struct token *ct = NULL;
 
 	top.sign = 1;
 	if (tf->art == tf->nt) goto trunc_err;
@@ -655,6 +655,8 @@ rogue_op_err:
 invalid_token_err:
 	error(eval_line, "invalid token in constant integral expression");
 	throw(eval_exception);
+
+	return top;
 }
 
 #define UNARY(x)	((x) != NUMBER && (x) != NAME && (x) != CHAR \

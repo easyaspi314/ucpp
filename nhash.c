@@ -134,7 +134,7 @@ static hash_item_header *find_node(HTT *htt, unsigned u,
 {
 	hash_item_header *node = TREE(u);
 	hash_item_header *nodef = NULL;
-	int ls;
+	int ls = 0;
 
 	u &= ~1U;
 	while (node != NULL) {
@@ -194,7 +194,7 @@ void *HTT2_get(HTT2 *htt, char *name)
 static char *make_ident(char *name, unsigned u)
 {
 	size_t n = strlen(name) + 1;
-	char *ident = getmem(n + sizeof(unsigned));
+	char *ident = (char *)getmem(n + sizeof(unsigned));
 
 	*(unsigned *)ident = u & ~1U;
 	memcpy(ident + sizeof(unsigned), name, n);
@@ -206,7 +206,7 @@ static char *make_ident(char *name, unsigned u)
  */
 static char *make_fake_ident(unsigned u, hash_item_header *next)
 {
-	char *ident = getmem(PTR_SHIFT + sizeof(hash_item_header *));
+	char *ident = (char *)getmem(PTR_SHIFT + sizeof(hash_item_header *));
 
 	*(unsigned *)ident = u | 1U;
 	*(hash_item_header **)(ident + PTR_SHIFT) = next;
@@ -229,7 +229,7 @@ static void *internal_put(HTT *htt, void *item, char *name, int reduced)
 	int ls;
 	hash_item_header *father;
 	hash_item_header *node = find_node(htt, u, &father, &ls, reduced);
-	hash_item_header *itemg = item, *pnode;
+	hash_item_header *itemg = (hash_item_header *)item, *pnode = NULL;
 
 	if (node == NULL) {
 		itemg->left = itemg->right = NULL;
@@ -247,7 +247,7 @@ static void *internal_put(HTT *htt, void *item, char *name, int reduced)
 	if ((v & 1U) == 0) {
 		if (strcmp(HASH_ITEM_NAME(node), name) == 0)
 			return node;
-		pnode = getmem(sizeof *pnode);
+		pnode = (hash_item_header *)getmem(sizeof *pnode);
 		pnode->left = node->left;
 		pnode->right = node->right;
 		pnode->ident = make_fake_ident(u, node);
@@ -272,7 +272,7 @@ static void *internal_put(HTT *htt, void *item, char *name, int reduced)
 	}
 	itemg->left = itemg->right = NULL;
 	itemg->ident = make_ident(name, u);
-	pnode->left = itemg;
+	if (pnode) pnode->left = itemg;
 	return NULL;
 }
 

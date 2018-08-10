@@ -176,7 +176,7 @@
  * For Linux, get gcc includes too, or you will miss things like stddef.h.
  * The exact path varies much, depending on the distribution.
  */
-#define STD_INCLUDE_PATH	"/usr/local/include", "/usr/include"
+#define STD_INCLUDE_PATH	0
 
 /* ====================================================================== */
 /*

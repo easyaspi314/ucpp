@@ -169,7 +169,7 @@ void *mmvwo(void *dest, void *src, size_t n)
 char *(sdup)(char *src)
 {
 	size_t n = 1 + strlen(src);
-	char *x = getmem(n);
+	char *x = (char *)getmem(n);
 
 	mmv(x, src, n);
 	return x;

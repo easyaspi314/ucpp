@@ -58,8 +58,8 @@ int main(int argc, char *argv[])
 
 	/* step 9 -- we do not have any macro to define, but we add any
 	   argument as an include path */
+    define_macro(&ls, "blah=1");
 	for (i = 1; i < argc; i ++) add_incpath(argv[i]);
-
 	/* step 10 -- we are a lexer and we want CONTEXT tokens */
 	enter_file(&ls, ls.flags);
 

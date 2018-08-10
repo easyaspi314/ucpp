@@ -329,6 +329,7 @@ int handle_define(struct lexer_state *ls)
 	
 #ifdef LOW_MEM
 	mv.art = mv.nt = 0;
+	mv.t = 0;
 #endif
 	/* find the next non-white token on the line, this should be
 	   the macro name */
@@ -415,6 +416,7 @@ int handle_define(struct lexer_state *ls)
 					goto warp_error;
 				}
 				if (!redef) {
+
 					aol(m->arg, narg,
 						sdup(ls->ctok->name), 8);
 					/* we must keep track of m->narg
@@ -932,7 +934,7 @@ static inline char *stringify_string(char *x)
 {
 	size_t l;
 	int i, inside_str = 0, inside_cc = 0, must_quote, has_quoted = 0;
-	char *y, *d;
+	char *y = 0, *d = 0;
 
 	for (i = 0; i < 2; i ++) {
 		if (i) d[0] = '"';
@@ -1028,7 +1030,7 @@ int substitute_macro(struct lexer_state *ls, struct macro *m,
 	struct token_fifo *tfi, int penury, int reject_nested, long l)
 {
 	char *mname = HASH_ITEM_NAME(m);
-	struct token_fifo *atl, etl;
+	struct token_fifo *atl = NULL, etl;
 	struct token t, *ct;
 	int i, save_nest = m->nest;
 	size_t save_art, save_tfi, etl_limit;
@@ -1754,7 +1756,7 @@ int define_macro(struct lexer_state *ls, char *def)
  * It returns non-zero on error (undefinition of a special macro,
  * void macro name).
  */
-int undef_macro(struct lexer_state *ls, char *def)
+int undef_macro(struct lexer_state *ls __attribute__((unused)), char *def)
 {
 	char *c = def;
 

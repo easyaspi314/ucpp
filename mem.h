@@ -49,7 +49,7 @@ void *getmem_debug(size_t, char *, int);
 #if defined AUDIT || defined MEM_DEBUG
 void freemem(void *);
 #else
-#define freemem		free
+#define freemem(x)	do { free((x)); x=0; } while(0)
 #endif
 
 #if defined MEM_DEBUG

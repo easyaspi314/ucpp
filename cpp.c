@@ -1,3 +1,4 @@
+
 /*
  * C and T preprocessor, and integrated lexer
  * (c) Thomas Pornin 1999 - 2002
@@ -91,6 +92,62 @@ void ucpp_ouch(char *fmt, ...)
 	die();
 }
 
+static int color_diagnostics = 0;
+/* Colors for literals. */
+#define ESCAPE(code, str) ((color_diagnostics) ? ("\033[" code str "\033[0m") : str)
+#define BOLD(str) ESCAPE("1m", str)
+#define RED(str) ESCAPE("31;1m", str)
+#define MAGENTA(str) ESCAPE("35;1m", str)
+#define CYAN(str) ESCAPE("36;1m", str)
+
+/* Print a line from the file with an error. */
+
+static void
+print_error_line(const char *filename, ssize_t line)
+{
+    FILE *file;
+    char *buf;
+    ssize_t count, curline = 0;
+    size_t size = 32;
+
+    /* Return on empty file or stdin file (not supported yet) */
+    if (line == 0 || !filename || *filename == '\0'
+        || !strcmp(filename, "<stdin>"))
+        return;
+
+    buf = (char *)malloc(32 * sizeof(char));
+
+    file = fopen(filename, "r");
+    if (!file)
+        return;
+
+    while ((count = getline(&buf, &size, file)) != -1)
+    {
+        if (ferror(file))
+            break;
+
+        if (++curline == line)
+        {
+            /* Don't bother with an empty line. */
+            if (count <= 1)
+                break;
+
+            /* Truncate long lines */
+            if (count > 70)
+                buf[70] = '\0';
+
+            fprintf(stderr, "%s\n", buf);
+
+            break;
+        }
+        if (feof(file))
+            break;
+    }
+
+    fclose(file);
+    free(buf);
+}
+
 /*
  * report an error, with current_filename, line, and printf-like syntax
  */
@@ -100,16 +157,20 @@ void ucpp_error(long line, char *fmt, ...)
 
 	va_start(ap, fmt);
 	if (line > 0)
-		fprintf(stderr, "%s: line %ld: ", current_filename, line);
-	else if (line == 0) fprintf(stderr, "%s: ", current_filename);
+		fprintf(stderr, BOLD("%s:%ld: "), current_filename, line);
+	else if (line == 0) fprintf(stderr, BOLD("%s: "), current_filename);
+
+    fputs(RED("error: "), stderr);
 	vfprintf(stderr, fmt, ap);
-	fprintf(stderr, "\n");
+	fputc('\n', stderr);
+	if (line > 0) print_error_line(current_filename, line);
+
 	if (line >= 0) {
 		struct stack_context *sc = report_context();
 		size_t i;
 
 		for (i = 0; sc[i].line >= 0; i ++)
-			fprintf(stderr, "\tincluded from %s:%ld\n",
+			fprintf(stderr, "\tIn file included from %s:%ld\n",
 				sc[i].long_name ? sc[i].long_name : sc[i].name,
 				sc[i].line);
 		freemem(sc);
@@ -133,6 +194,9 @@ void ucpp_warning(long line, char *fmt, ...)
 	else fprintf(stderr, "warning: ");
 	vfprintf(stderr, fmt, ap);
 	fprintf(stderr, "\n");
+
+	if (line > 0) print_error_line(current_filename, line);
+
 	if (line >= 0) {
 		struct stack_context *sc = report_context();
 		size_t i;
@@ -180,7 +244,7 @@ void garbage_collect(struct garbage_fifo *gf)
 
 static void init_garbage_fifo(struct garbage_fifo *gf)
 {
-	gf->garbage = getmem((gf->memgarb = GARBAGE_LIST_MEMG)
+	gf->garbage = (char **)getmem((gf->memgarb = GARBAGE_LIST_MEMG)
 		* sizeof(char *));
 	gf->ngarb = 0;
 }
@@ -254,7 +318,7 @@ static int found_files_init_done = 0, found_files_sys_init_done = 0;
 
 static struct found_file *new_found_file(void)
 {
-	struct found_file *ff = getmem(sizeof(struct found_file));
+	struct found_file *ff = (struct found_file *)getmem(sizeof(struct found_file));
 
 	ff->name = 0;
 	ff->protect = 0;
@@ -272,7 +336,7 @@ static void del_found_file(void *m)
 
 static struct found_file_sys *new_found_file_sys(void)
 {
-	struct found_file_sys *ffs = getmem(sizeof(struct found_file_sys));
+	struct found_file_sys *ffs = (struct found_file_sys *)getmem(sizeof(struct found_file_sys));
 
 	ffs->rff = 0;
 	ffs->incdir = -1;
@@ -359,13 +423,13 @@ void init_buf_lexer_state(struct lexer_state *ls, int wb)
 	ls->sbuf = 0;
 	ls->output_fifo = 0;
 
-	ls->ctok = getmem(sizeof(struct token));
+	ls->ctok = (struct token *)getmem(sizeof(struct token));
 	ls->ctok->name = getmem(ls->tknl = TOKEN_NAME_MEMG);
 	ls->pending_token = 0;
 
 	ls->flags = 0;
 	ls->count_trigraphs = 0;
-	ls->gf = getmem(sizeof(struct garbage_fifo));
+	ls->gf = (struct garbage_fifo *)getmem(sizeof(struct garbage_fifo));
 	init_garbage_fifo(ls->gf);
 	ls->condcomp = 1;
 	ls->condnest = 0;
@@ -482,7 +546,7 @@ struct stack_context *report_context(void)
 	struct stack_context *sc;
 	size_t i;
 
-	sc = getmem((ls_depth + 1) * sizeof(struct stack_context));
+	sc = (struct stack_context *)getmem((ls_depth + 1) * sizeof(struct stack_context));
 	for (i = 0; i < ls_depth; i ++) {
 		sc[i].name = ls_stack[ls_depth - i - 1].name;
 		sc[i].long_name = ls_stack[ls_depth - i - 1].long_name;
@@ -499,7 +563,8 @@ struct stack_context *report_context(void)
 void init_lexer_mode(struct lexer_state *ls)
 {
 	ls->flags = DEFAULT_LEXER_FLAGS;
-	ls->output_fifo = getmem(sizeof(struct token_fifo));
+	ls->output_fifo = (struct token_fifo *)getmem(sizeof(struct token_fifo));
+	ls->output_fifo->t = 0;
 	ls->output_fifo->art = ls->output_fifo->nt = 0;
 	ls->toplevel_of = ls->output_fifo;
 	ls->save_ctok = ls->ctok;
@@ -546,7 +611,7 @@ static void print_line_info(struct lexer_state *ls, unsigned long flags)
 		current_long_filename : current_filename;
 	char *b, *d;
 
-	b = getmem(50 + strlen(fn));
+	b = (char *)getmem(50 + strlen(fn));
 	if (flags & GCC_LINE_NUM) {
 		sprintf(b, "# %ld \"%s\"\n", ls->line, fn);
 	} else {
@@ -696,7 +761,7 @@ static FILE *find_file(char *name, int localdir)
 			 * found_files and found_files_loc are irrelevant
 			 * for this search.
 			 */
-			s = getmem(i + 2 + nl);
+			s = (char *)getmem(i + 2 + nl);
 			mmv(s, rfn, i);
 #ifdef MSDOS
 			s[i] = '\\';
@@ -705,11 +770,12 @@ static FILE *find_file(char *name, int localdir)
 #endif
 			mmv(s + i + 1, name, nl);
 			s[i + 1 + nl] = 0;
-			ff = HTT_get(&found_files, s);
-		} else ff = HTT_get(&found_files, name);
+			ff = (struct found_file *)HTT_get(&found_files, s);
+		} else ff = (struct found_file *)HTT_get(&found_files, name);
 	}
 	if (!ff) {
-		struct found_file_sys *ffs = HTT_get(&found_files_sys, name);
+		struct found_file_sys *ffs = (struct found_file_sys *)
+                HTT_get(&found_files_sys, name);
 
 		if (ffs) {
 			ff = ffs->rff;
@@ -750,7 +816,7 @@ static FILE *find_file(char *name, int localdir)
 	for (i = 0; (size_t)i < include_path_nb; i ++) {
 		size_t ni = strlen(include_path[i]);
 
-		s = getmem(ni + nl + 2);
+		s = (char *)getmem(ni + nl + 2);
 		mmv(s, include_path[i], ni);
 #ifdef AMIGA
 	/* contributed by Volker Barthelmann */
@@ -777,7 +843,7 @@ static FILE *find_file(char *name, int localdir)
 		}
 #endif
 		incdir = i;
-		if ((ff = HTT_get(&found_files, s)) != 0) {
+		if ((ff = (struct found_file *)HTT_get(&found_files, s)) != 0) {
 			/*
 			 * The file is known, but not as a system include
 			 * file under the name provided.
@@ -903,7 +969,7 @@ static FILE *find_file_next(char *name)
 		char *s;
 		size_t ni = strlen(include_path[i]);
 
-		s = getmem(ni + nl + 2);
+		s = (char *)getmem(ni + nl + 2);
 		mmv(s, include_path[i], ni);
 		s[ni] = '/';
 		mmv(s + ni + 1, name, nl + 1);
@@ -915,7 +981,7 @@ static FILE *find_file_next(char *name)
 			for (c = s; *c; c ++) if (*c == '/') *c = '\\';
 		}
 #endif
-		ff = HTT_get(&found_files, s);
+		ff = (struct found_file *)HTT_get(&found_files, s);
 		if (ff) {
 			/* file was found in the cache */
 			if (ff->protect) {
@@ -991,6 +1057,10 @@ static int handle_if(struct lexer_state *ls)
 
 	/* first, get the whole line */
 	tf.art = tf.nt = 0;
+
+    /* silence GCC */
+    tf.t = 0;
+
 	while (!next_token(ls) && ls->ctok->type != NEWLINE) {
 		struct token t;
 
@@ -1004,7 +1074,8 @@ static int handle_if(struct lexer_state *ls)
 		}
 		aol(tf.t, tf.nt, t, TOKEN_LIST_MEMG);
 	}
-	if (ltww && tf.nt) if ((-- tf.nt) == 0) freemem(tf.t);
+	if (ltww && tf.nt) if ((-- tf.nt) == 0 && tf.t) freemem(tf.t);
+
 	if (tf.nt == 0) {
 		error(l, "void condition for a #if/#elif");
 		return -1;
@@ -1049,7 +1120,7 @@ static int handle_if(struct lexer_state *ls)
 		aol(tf1.t, tf1.nt, rt, TOKEN_LIST_MEMG);
 		tf.art = eidx + 1;
 	}
-	freemem(tf.t);
+	if (tf.t) freemem(tf.t);
 	if (tf1.nt == 0) {
 		error(l, "void condition (after expansion) for a #if/#elif");
 		return -1;
@@ -1197,7 +1268,7 @@ error1:
 static int handle_include(struct lexer_state *ls, unsigned long flags, int nex)
 {
 	int c, string_fname = 0;
-	char *fname;
+	char *fname = NULL;
 	unsigned char *fname2;
 	size_t fname_ptr = 0;
 	long l = ls->line;
@@ -1207,6 +1278,8 @@ static int handle_include(struct lexer_state *ls, unsigned long flags, int nex)
 	size_t nl;
 	int tgd;
 	struct lexer_state alt_ls;
+
+    tf.t = 0;
 
 #define left_angle(t)	((t) == LT || (t) == LEQ || (t) == LSH \
 			|| (t) == ASLSH || (t) == DIG_LBRK || (t) == LBRA)
@@ -1256,7 +1329,7 @@ include_last_chance:
 	 * it is no reason not to support it.
 	 */
 	if (fname_ptr == 0) goto include_error;
-	fname2 = getmem(fname_ptr + 1);
+	fname2 = (unsigned char *)getmem(fname_ptr + 1);
 	mmv(fname2 + 1, fname, fname_ptr);
 	fname2[0] = '<';
 	/*
@@ -1333,7 +1406,7 @@ include_macro2:
 		}
 		aol(tf2.t, tf2.nt, *ct, TOKEN_LIST_MEMG);
 	}
-	freemem(tf.t);
+	if (tf.t) freemem(tf.t);
 	ls->output_fifo = save_tf;
 	for (x = 0; (size_t)x < tf2.nt && ttWHI(tf2.t[x].type); x ++);
 	for (y = tf2.nt - 1; y >= 0 && ttWHI(tf2.t[y].type); y --);
@@ -1361,7 +1434,7 @@ include_macro2:
 			"of <foo> in #include");
 		for (j = 0, i = x; i <= y; i ++) if (!ttWHI(tf2.t[i].type))
 			j += strlen(tname(tf2.t[i]));
-		fname = getmem(j + 1);
+		fname = (char *)getmem(j + 1);
 		for (j = 0, i = x; i <= y; i ++) {
 			if (ttWHI(tf2.t[i].type)) continue;
 			strcpy(fname + j, tname(tf2.t[i]));
@@ -1484,7 +1557,7 @@ static int handle_line(struct lexer_state *ls, unsigned long flags)
 		}
 		aol(tf2.t, tf2.nt, *ct, TOKEN_LIST_MEMG);
 	}
-	freemem(tf.t);
+	if (tf.t) freemem(tf.t);
 	for (tf2.art = 0; tf2.art < tf2.nt && ttWHI(tf2.t[tf2.art].type);
 		tf2.art ++);
 	ls->output_fifo = save_tf;
@@ -1536,7 +1609,7 @@ static int handle_line(struct lexer_state *ls, unsigned long flags)
 			warning(l, "trailing garbage in #line");
 		}
 	}
-	freemem(tf2.t);
+	if (tf2.t) freemem(tf2.t);
 	enter_file(ls, flags);
 	return 0;
 
@@ -1554,7 +1627,7 @@ static void handle_error(struct lexer_state *ls)
 	int c;
 	size_t p = 0, lp = 128;
 	long l = ls->line;
-	unsigned char *buf = getmem(lp);
+	unsigned char *buf = (unsigned char *)getmem(lp);
 
 	while ((c = grap_char(ls)) >= 0 && c != '\n') {
 		discard_char(ls);
@@ -1660,7 +1733,7 @@ static void handle_pragma(struct lexer_state *ls)
 	}
 	/* void #pragma are ignored */
 	if (c == '\n') return;
-	buf = getmem(y);
+	buf = (unsigned char *)getmem(y);
 	buf[0] = c;
 	while ((c = grap_char(ls)) >= 0 && c != '\n') {
 		discard_char(ls);
@@ -2098,7 +2171,7 @@ static int llex(struct lexer_state *ls)
 	struct token_fifo *tf = ls->output_fifo;
 	int r;
 
-	if (tf->nt != 0) {
+	if (tf != 0 && tf->nt != 0) {
 		if (tf->art < tf->nt) {
 #ifdef INMACRO_FLAG
 			if (!ls->inmacro) {
@@ -2116,7 +2189,10 @@ static int llex(struct lexer_state *ls)
 #ifdef INMACRO_FLAG
 			ls->inmacro = 0;
 #endif
-			freemem(tf->t);
+			if (tf->t)
+            {
+                freemem(tf->t);
+            }
 			tf->art = tf->nt = 0;
 			garbage_collect(ls->gf);
 			ls->ctok = ls->save_ctok;
@@ -2181,6 +2257,9 @@ int check_cpp_errors(struct lexer_state *ls)
  */
 void init_cpp(void)
 {
+#ifndef NO_UCPP_ERROR_FUNCTIONS
+    color_diagnostics = isatty(2);
+#endif
 	init_cppm();
 }
 
@@ -2304,26 +2383,26 @@ static void usage(char *command_name)
 	fprintf(stderr,
 	"Usage: %s [options] [file]\n"
 	"language options:\n"
-	"  -C              keep comments in output\n"
-	"  -s              keep '#' when no cpp directive is recognized\n"
-	"  -l              do not emit line numbers\n"
-	"  -lg             emit gcc-like line numbers\n"
-	"  -CC             disable C++-like comments\n"
-	"  -a, -na, -a0    handle (or not) assertions\n"
-	"  -V              disable macros with extra arguments\n"
-	"  -u              understand UTF-8 in source\n"
-	"  -X              enable -a, -u and -Y\n"
-	"  -c90            mimic C90 behaviour\n"
-	"  -t              disable trigraph support\n"
+	"  -C                keep comments in output\n"
+	"  -s                keep '#' when no cpp directive is recognized\n"
+	"  -l, -P            do not emit line numbers\n"
+	"  -lg               emit gcc-like line numbers\n"
+	"  -CC               disable C++-like comments\n"
+	"  -a, -na, -a0      handle (or not) assertions\n"
+	"  -V                disable macros with extra arguments\n"
+	"  -u                understand UTF-8 in source\n"
+	"  -X                enable -a, -u and -Y\n"
+	"  -[std=]c90, -ansi mimic C90 behaviour\n"
+	"  -t                disable trigraph support\n"
 	"warning options:\n"
-	"  -wt             emit a final warning when trigaphs are encountered\n"
-	"  -wtt            emit warnings for each trigaph encountered\n"
-	"  -wa             emit warnings that are usually useless\n"
-	"  -w0             disable standard warnings\n"
+	"  -wt               emit a final warning when trigaphs are encountered\n"
+	"  -wtt, -Wtrigraphs emit warnings for each trigaph encountered\n"
+	"  -wa, -Wall        emit warnings that are usually useless\n"
+	"  -w0, -w           disable standard warnings\n"
 	"directory options:\n"
 	"  -I directory    add 'directory' before the standard include path\n"
 	"  -J directory    add 'directory' after the standard include path\n"
-	"  -zI             do not use the standard include path\n"
+	"  -zI, -nostdinc  do not use the standard include path\n"
 	"  -M              emit Makefile-like dependencies instead of normal "
 			"output\n"
 	"  -Ma             emit also dependancies for system files\n"
@@ -2335,7 +2414,7 @@ static void usage(char *command_name)
 	"  -Afoo(bar)      assert foo(bar)\n"
 	"  -Bfoo(bar)      unassert foo(bar)\n"
 	"  -Y              predefine system-dependant macros\n"
-	"  -Z              do not predefine special macros\n"
+	"  -Z, -undef      do not predefine special macros\n"
 	"  -d              emit defined macros\n"
 	"  -e              emit assertions\n"
 	"misc options:\n"
@@ -2377,7 +2456,7 @@ static int parse_opt(int argc, char *argv[], struct lexer_state *ls)
 	ls->flags = DEFAULT_CPP_FLAGS;
 	emit_output = ls->output = stdout;
 	for (i = 1; i < argc; i ++) if (argv[i][0] == '-') {
-		if (!strcmp(argv[i], "-h")) {
+		if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
 			return 2;
 		} else if (!strcmp(argv[i], "-C")) {
 			ls->flags &= ~DISCARD_COMMENTS;
@@ -2398,25 +2477,31 @@ static int parse_opt(int argc, char *argv[], struct lexer_state *ls)
 			ls->flags |= HANDLE_ASSERTIONS;
 			ls->flags |= UTF8_SOURCE;
 			system_macros = 1;
-		} else if (!strcmp(argv[i], "-c90")) {
+		} else if (!strcmp(argv[i], "-c90")
+			|| !strcmp(argv[i], "-ansi")
+			|| !strcmp(argv[i], "-std=c90")) {
 			ls->flags &= ~MACRO_VAARG;
 			ls->flags &= ~CPLUSPLUS_COMMENTS;
 			c99_compliant = 0;
 			c99_hosted = -1;
 		} else if (!strcmp(argv[i], "-t")) {
 			ls->flags &= ~HANDLE_TRIGRAPHS;
-		} else if (!strcmp(argv[i], "-wt")) {
+		} else if (!strcmp(argv[i], "-wt")
+			|| !strcmp(argv[i], "-Wtrigraphs")) {
 			ls->flags |= WARN_TRIGRAPHS;
 		} else if (!strcmp(argv[i], "-wtt")) {
 			ls->flags |= WARN_TRIGRAPHS_MORE;
-		} else if (!strcmp(argv[i], "-wa")) {
+		} else if (!strcmp(argv[i], "-wa")
+			|| !strcmp(argv[i], "-Wall")) {
 			ls->flags |= WARN_ANNOYING;
-		} else if (!strcmp(argv[i], "-w0")) {
+		} else if (!strcmp(argv[i], "-w0")
+			|| !strcmp(argv[i], "-w")) {
 			ls->flags &= ~WARN_STANDARD;
 			ls->flags &= ~WARN_PRAGMA;
 		} else if (!strcmp(argv[i], "-s")) {
 			ls->flags &= ~FAIL_SHARP;
-		} else if (!strcmp(argv[i], "-l")) {
+		} else if (!strcmp(argv[i], "-l")
+			|| !strcmp(argv[i], "-P")) {
 			ls->flags &= ~LINE_NUM;
 		} else if (!strcmp(argv[i], "-lg")) {
 			ls->flags |= GCC_LINE_NUM;
@@ -2428,7 +2513,7 @@ static int parse_opt(int argc, char *argv[], struct lexer_state *ls)
 			emit_dependencies = 2;
 		} else if (!strcmp(argv[i], "-Y")) {
 			system_macros = 1;
-		} else if (!strcmp(argv[i], "-Z")) {
+		} else if (!strcmp(argv[i], "-Z") || !strcmp(argv[i], "-undef")) {
 			no_special_macros = 1;
 		} else if (!strcmp(argv[i], "-d")) {
 			ls->flags &= ~KEEP_OUTPUT;
@@ -2436,7 +2521,8 @@ static int parse_opt(int argc, char *argv[], struct lexer_state *ls)
 		} else if (!strcmp(argv[i], "-e")) {
 			ls->flags &= ~KEEP_OUTPUT;
 			print_asserts = 1;
-		} else if (!strcmp(argv[i], "-zI")) {
+		} else if (!strcmp(argv[i], "-zI")
+			|| !strcmp(argv[i], "-nostdinc")) {
 			with_std_incpath = 0;
 		} else if (!strcmp(argv[i], "-I") || !strcmp(argv[i], "-J")) {
 			i ++;
@@ -2499,10 +2585,20 @@ static int parse_opt(int argc, char *argv[], struct lexer_state *ls)
 		ret = ret || define_macro(ls, system_macros_def[i]);
 	for (i = 1; i < argc; i ++)
 		if (argv[i][0] == '-' && argv[i][1] == 'D')
-			ret = ret || define_macro(ls, argv[i] + 2);
+        {
+            if (argv[i][2] == 0)
+                ret = ret || define_macro(ls, argv[++i]);
+            else
+    			ret = ret || define_macro(ls, argv[i] + 2);
+        }
 	for (i = 1; i < argc; i ++)
 		if (argv[i][0] == '-' && argv[i][1] == 'U')
-			ret = ret || undef_macro(ls, argv[i] + 2);
+        {
+            if (argv[i][2] == 0)
+                ret = ret || undef_macro(ls, argv[++i]);
+            else
+    			ret = ret || undef_macro(ls, argv[i] + 2);
+        }
 	if (ls->flags & HANDLE_ASSERTIONS) {
 		if (standard_assertions)
 			for (i = 0; system_assertions_def[i]; i ++)

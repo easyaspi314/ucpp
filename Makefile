@@ -56,8 +56,9 @@
 #FLAGS = -O -m -DMEM_CHECK
 
 # for gcc
-CC = gcc
-FLAGS = -O3 -W -Wall -ansi
+CC := gcc
+FLAGS :=  -O3 -W -Wall -ansi
+LDFLAGS = -s
 #FLAGS = -g -W -Wall -ansi -DAUDIT -DMEM_DEBUG
 #FLAGS = -O3 -mcpu=pentiumpro -fomit-frame-pointer -W -Wall -ansi -DMEM_CHECK
 #FLAGS = -O -pg -W -Wall -ansi -DMEM_CHECK
@@ -82,7 +83,7 @@ STAND_ALONE = -DSTAND_ALONE
 
 ifdef STAND_ALONE
 	CSRC = mem.c nhash.c cpp.c lexer.c assert.c macro.c eval.c
-	FINAL_STEP = $(CC) $(LDFLAGS) -DUCPP_CONFIG $(STAND_ALONE) -o ucpp $(CSRC) $(LIBS)
+	FINAL_STEP = $(CC) $(LDFLAGS) $(FLAGS) -DUCPP_CONFIG $(STAND_ALONE) -o ucpp $(CSRC) $(LIBS)
 endif
 
 # ----- nothing should be changed below this line -----
@@ -91,25 +92,25 @@ COBJ = mem.o nhash.o cpp.o lexer.o assert.o macro.o eval.o
 CFLAGS = $(FLAGS)
 
 all: ucpp
-	@ar cq libucpp.a *.o
+	ar cq libucpp.a *.o
 
 clean:
 	@rm -f *.o ucpp core *.a
 
-ucpp: $(COBJ)
-	@$(FINAL_STEP)
+ucpp: $(COBJ) *.h
+	$(FINAL_STEP)
 
-assert.o: tune.h ucppi.h cpp.h nhash.h mem.h
-	@$(CC) $(CFLAGS) -c assert.c
-cpp.o: tune.h ucppi.h cpp.h nhash.h mem.h
-	@$(CC) $(CFLAGS) -c cpp.c
-eval.o: tune.h ucppi.h cpp.h nhash.h mem.h arith.c arith.h
-	@$(CC) $(CFLAGS) -c eval.c
-lexer.o: tune.h ucppi.h cpp.h nhash.h mem.h
-	@$(CC) $(CFLAGS) -c lexer.c
-macro.o: tune.h ucppi.h cpp.h nhash.h mem.h
-	@$(CC) $(CFLAGS) -c macro.c
-mem.o: mem.h
-	@$(CC) $(CFLAGS) -c mem.c
-nhash.o: nhash.h mem.h
-	@$(CC) $(CFLAGS) -c nhash.c
+assert.o: %.o: %.c tune.h ucppi.h cpp.h nhash.h mem.h
+	$(CC) $(CFLAGS) -c assert.c
+cpp.o: %.o: %.c tune.h ucppi.h cpp.h nhash.h mem.h
+	$(CC) $(CFLAGS) -c cpp.c
+eval.o: %.o: %.c tune.h ucppi.h cpp.h nhash.h mem.h arith.c arith.h
+	$(CC) $(CFLAGS) -c eval.c
+lexer.o: %.o: %.c tune.h ucppi.h cpp.h nhash.h mem.h
+	$(CC) $(CFLAGS) -c lexer.c
+macro.o: %.o: %.c tune.h ucppi.h cpp.h nhash.h mem.h
+	$(CC) $(CFLAGS) -c macro.c
+mem.o: %.o: %.c mem.h
+	$(CC) $(CFLAGS) -c mem.c
+nhash.o: %.o: %.c nhash.h mem.h
+	$(CC) $(CFLAGS) -c nhash.c
