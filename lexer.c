@@ -505,7 +505,7 @@ static inline int read_char(struct lexer_state *ls)
 		if (ls->ebuf == 0) return -1;
 		c = ls->input_buf[ls->pbuf ++];
 #else
-		int x = getc(ls->input);
+		int x = getc_unlocked(ls->input);
 
 		if (x == EOF) return -1;
 		c = x;

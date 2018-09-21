@@ -57,8 +57,8 @@
 
 # for gcc
 CC := gcc
-FLAGS :=  -O3 -W -Wall -ansi
-LDFLAGS = -s
+FLAGS :=  -O3 -W -Wall -std=c99 -D_GNU_SOURCE -D_DARWIN_C_SOURCE
+LDFLAGS =
 #FLAGS = -g -W -Wall -ansi -DAUDIT -DMEM_DEBUG
 #FLAGS = -O3 -mcpu=pentiumpro -fomit-frame-pointer -W -Wall -ansi -DMEM_CHECK
 #FLAGS = -O -pg -W -Wall -ansi -DMEM_CHECK
@@ -91,8 +91,9 @@ endif
 COBJ = mem.o nhash.o cpp.o lexer.o assert.o macro.o eval.o
 CFLAGS = $(FLAGS)
 
-all: ucpp
-	ar cq libucpp.a *.o
+all: libucpp.a
+
+libucpp.a: libucpp.a($(COBJ)) *.h
 
 clean:
 	@rm -f *.o ucpp core *.a

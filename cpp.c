@@ -115,11 +115,11 @@ print_error_line(const char *filename, ssize_t line)
         || !strcmp(filename, "<stdin>"))
         return;
 
-    buf = (char *)malloc(32 * sizeof(char));
-
     file = fopen(filename, "r");
     if (!file)
         return;
+
+    buf = (char *)malloc(32);
 
     while ((count = getline(&buf, &size, file)) != -1)
     {
