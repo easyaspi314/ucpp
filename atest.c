@@ -9,8 +9,8 @@
 #define NATIVE_UNSIGNED           unsigned
 
 #define NATIVE_UNSIGNED_BITS      32
-#define NATIVE_SIGNED_MIN         LONG_MIN
-#define NATIVE_SIGNED_MAX         LONG_MAX
+#define NATIVE_SIGNED_MIN         INT32_MIN
+#define NATIVE_SIGNED_MAX         INT32_MAX
 
 #elif defined TEST_SIMUL
 

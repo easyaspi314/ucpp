@@ -34,6 +34,10 @@
 #include "cpp.h"
 #include "nhash.h"
 
+#if !defined(__GNUC__) && !defined(__clang__)
+#define __attribute__(x)
+#endif
+
 /*
  * A macro represented in a compact form; simple tokens are represented
  * by one byte, containing their number. Tokens with a string value are
@@ -76,7 +80,7 @@ void put_char(struct lexer_state *, unsigned char);
 void discard_char(struct lexer_state *);
 int next_token(struct lexer_state *);
 int grap_char(struct lexer_state *);
-int space_char(int);
+__attribute__((__const__)) int space_char(int);
 
 /*
  * from assert.c
@@ -93,10 +97,12 @@ struct assert {
 #define get_assertion		ucpp_get_assertion
 #define wipe_assertions		ucpp_wipe_assertions
 
+__attribute__((__pure__))
 int cmp_token_list(struct token_fifo *, struct token_fifo *);
 int handle_assert(struct lexer_state *);
 int handle_unassert(struct lexer_state *);
-struct assert *get_assertion(char *);
+__attribute__((__pure__))
+struct assert *get_assertion(const char *);
 void wipe_assertions(void);
 
 /*
@@ -137,7 +143,8 @@ int handle_ifdef(struct lexer_state *);
 int handle_ifndef(struct lexer_state *);
 int substitute_macro(struct lexer_state *, struct macro *,
 	struct token_fifo *, int, int, long);
-struct macro *get_macro(char *);
+__attribute__((__pure__))
+struct macro *get_macro(const char *);
 void wipe_macros(void);
 
 extern struct lexer_state dsharp_lexer;
@@ -153,7 +160,7 @@ extern struct lexer_state tokenize_lexer;
 #define eval_expr	ucpp_eval_expr
 #define eval_line	ucpp_eval_line
 
-unsigned long strtoconst(char *);
+unsigned long strtoconst(const char *);
 unsigned long eval_expr(struct token_fifo *, int *, int);
 extern long eval_line;
 
@@ -181,7 +188,7 @@ extern JMP_BUF eval_exception;
 #define compress_token_list	ucpp_compress_token_list
 #endif
 
-char *token_name(struct token *);
+const char *token_name(struct token *);
 void throw_away(struct garbage_fifo *, char *);
 void garbage_collect(struct garbage_fifo *);
 void init_buf_lexer_state(struct lexer_state *, int);

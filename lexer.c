@@ -459,7 +459,7 @@ static inline void write_char(struct lexer_state *ls, unsigned char c)
 	ls->output_buf[ls->sbuf ++] = c;
 	if (ls->sbuf == OUTPUT_BUF_MEMG) flush_output(ls);
 #else
-	if (putc((int)c, ls->output) == EOF) {
+	if (putc_unlocked((int)c, ls->output) == EOF) {
 		error(ls->line, "output write error (disk full ?)");
 		die();
 	}
@@ -505,7 +505,7 @@ static inline int read_char(struct lexer_state *ls)
 		if (ls->ebuf == 0) return -1;
 		c = ls->input_buf[ls->pbuf ++];
 #else
-		int x = getc(ls->input);
+		int x = getc_unlocked(ls->input);
 
 		if (x == EOF) return -1;
 		c = x;
@@ -1000,7 +1000,7 @@ int next_token(struct lexer_state *ls)
 	if (ls->flags & READ_AGAIN) {
 		ls->flags &= ~READ_AGAIN;
 		if (!(ls->flags & LEXER)) {
-			char *c = S_TOKEN(ls->ctok->type) ?
+			const char *c = S_TOKEN(ls->ctok->type) ?
 				ls->ctok->name : token_name(ls->ctok);
 			if (ls->ctok->type == OPT_NONE) {
 				ls->ctok->type = NONE;

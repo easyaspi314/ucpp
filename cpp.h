@@ -242,35 +242,33 @@ void flush_output(struct lexer_state *);
 #endif
 
 void init_assertions(void);
-int make_assertion(char *);
-int destroy_assertion(char *);
+int make_assertion(const char *);
+int destroy_assertion(const char *);
 void print_assertions(void);
 
 void init_macros(void);
-int define_macro(struct lexer_state *, char *);
-int undef_macro(struct lexer_state *, char *);
+int define_macro(struct lexer_state *restrict, const char *restrict);
+int undef_macro(struct lexer_state *restrict, const char *restrict);
 void print_defines(void);
 
-void set_init_filename(char *, int);
+void set_init_filename(const char *, int);
 void init_cpp(void);
-void init_include_path(char *[]);
+void init_include_path(const char *[]);
 void init_lexer_state(struct lexer_state *);
 void init_lexer_mode(struct lexer_state *);
 void free_lexer_state(struct lexer_state *);
 void wipeout(void);
 int lex(struct lexer_state *);
 int check_cpp_errors(struct lexer_state *);
-void add_incpath(char *);
+void add_incpath(const char *);
 void init_tables(int);
 int enter_file(struct lexer_state *, unsigned long);
 int cpp(struct lexer_state *);
 void set_identifier_char(int c);
 void unset_identifier_char(int c);
 
-#ifdef UCPP_MMAP
-FILE *fopen_mmap_file(char *);
+FILE *fopen_mmap_file(const char *);
 void set_input_file(struct lexer_state *, FILE *);
-#endif
 
 struct stack_context {
 	char *long_name, *name;
@@ -283,16 +281,22 @@ extern int no_special_macros, system_macros,
 extern int c99_compliant, c99_hosted;
 extern FILE *emit_output;
 extern char *current_filename, *current_long_filename;
-extern char *operators_name[];
+extern const char *operators_name[];
 extern struct protect {
 	char *macro;
 	int state;
 	struct found_file *ff;
 } protect_detect;
 
-void ucpp_ouch(char *, ...);
-void ucpp_error(long, char *, ...);
-void ucpp_warning(long, char *, ...);
+#ifdef __GNUC__
+__attribute__((__noreturn__, __format__(printf, 1, 2))) void ucpp_ouch(const char *restrict, ...);
+__attribute__((__format__(printf, 2, 3))) void ucpp_error(long, const char *restrict, ...);
+__attribute__((__format__(printf, 2, 3))) void ucpp_warning(long, const char *restrict, ...);
+#else
+void ucpp_ouch(const char *restrict, ...);
+void ucpp_error(long, const char *restrict, ...);
+void ucpp_warning(long, const char *restrict, ...);
+#endif
 
 extern int *transient_characters;
 

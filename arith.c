@@ -277,12 +277,14 @@ ARITH_DECL_BI_UI_U(rsh)
 	return x >> y;
 }
 
+__attribute__((__pure__))
 ARITH_DECL_BI_UU_U(slash)
 {
 	if (y == 0) ARITH_ERROR(ARITH_EXCEP_SLASH_D);
 	return x / y;
 }
 
+__attribute__((__pure__))
 ARITH_DECL_BI_UU_U(pct)
 {
 	if (y == 0) ARITH_ERROR(ARITH_EXCEP_PCT_D);
@@ -644,6 +646,7 @@ ARITH_DECL_BI_SS_S(star)
  * considered as an error, not a warning, because it actually triggers
  * an exception on modern Pentium-based PC.
  */
+__attribute__((__pure__))
 ARITH_DECL_BI_SS_S(slash)
 {
 	if (y == 0) ARITH_ERROR(ARITH_EXCEP_SLASH_D);
@@ -657,6 +660,7 @@ ARITH_DECL_BI_SS_S(slash)
 /*
  * Only division by 0 needs to be checked.
  */
+__attribute__((__pure__))
 ARITH_DECL_BI_SS_S(pct)
 {
 	if (y == 0) ARITH_ERROR(ARITH_EXCEP_PCT_D);

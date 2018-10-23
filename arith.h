@@ -151,8 +151,8 @@ enum {
                                    arith_op_s(op)(int x)
 #define ARITH_DECL_MONO_L_S(op)    ARITH_FUNCTION_HEADER arith_s \
                                    arith_op_s(op)(long x)
-#define ARITH_DECL_MONO_ST_US(op)  ARITH_FUNCTION_HEADER char *arith_op_u(op) \
-                                   (char *c, arith_u *ru, arith_s *rs, int *sp)
+#define ARITH_DECL_MONO_ST_US(op)  ARITH_FUNCTION_HEADER const char *arith_op_u(op) \
+                                   (const char *c, arith_u *ru, arith_s *rs, int *sp)
 
 #define ARITH_DECL_BI_UU_U(op)     ARITH_FUNCTION_HEADER arith_u \
                                    arith_op_u(op)(arith_u x, arith_u y)

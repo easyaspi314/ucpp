@@ -46,7 +46,7 @@ typedef struct hash_item_header_ {
  * retrieved pointer can become invalid whenever a new item is inserted
  * in or removed from the table.
  */
-#define HASH_ITEM_NAME(s) (((hash_item_header *)(s))->ident + sizeof(unsigned))
+#define HASH_ITEM_NAME(s) (((const hash_item_header *)(s))->ident + sizeof(unsigned))
 
 /*
  * Number of lists for the primary hash step. Can be reduced to save more
@@ -81,7 +81,7 @@ typedef struct {
  * that item (except the hash_item_header contents, which are handled
  * internally).
  */
-void HTT_init(HTT *htt, void (*deldata)(void *));
+void HTT_init(HTT *restrict htt, void (*deldata)(void *));
 
 /*
  * Link an item into the hash table under the given name. If another
@@ -90,19 +90,20 @@ void HTT_init(HTT *htt, void (*deldata)(void *));
  * table and NULL is returned. The object pointed to by `item' is
  * linked from the table, but not the string pointed to by `name'.
  */
-void *HTT_put(HTT *htt, void *item, char *name);
+void *HTT_put(HTT *restrict htt, void *restrict item, const char *restrict name);
 
 /*
  * Retrieve an item by name from the hash table. NULL is returned if
  * the object is not found.
  */
-void *HTT_get(HTT *htt, char *name);
+__attribute__((__pure__))
+void *HTT_get(HTT *restrict htt, const char *restrict name);
 
 /*
  * Remove an item from the hash table. 1 is returned if the item was
  * removed, 0 if it was not found.
  */
-int HTT_del(HTT *htt, char *name);
+int HTT_del(HTT *restrict htt, const char *restrict name);
 
 /*
  * For all items stored within the hash table, invoke the provided
@@ -110,23 +111,24 @@ int HTT_del(HTT *htt, char *name);
  * scan by performing a longjmp() to a context encapsulating the
  * call to that function.
  */
-void HTT_scan(HTT *htt, void (*action)(void *));
+void HTT_scan(HTT *restrict htt, void (*action)(void *));
 
 /*
  * Release the whole table contents. After a call to this function,
  * the table is ready to accept new items.
  */
-void HTT_kill(HTT *htt);
+void HTT_kill(HTT *restrict htt);
 
 /*
  * The following functions are identical to the HTT_*() functions, except
  * that they operate on the reduced HTT2 tables.
  */
-void HTT2_init(HTT2 *htt, void (*deldata)(void *));
-void *HTT2_put(HTT2 *htt, void *item, char *name);
-void *HTT2_get(HTT2 *htt, char *name);
-int HTT2_del(HTT2 *htt, char *name);
-void HTT2_scan(HTT2 *htt, void (*action)(void *));
-void HTT2_kill(HTT2 *htt);
+void HTT2_init(HTT2 *restrict htt, void (*deldata)(void *));
+void *HTT2_put(HTT2 *restrict htt, void *restrict item, const char *restrict name);
+__attribute__((__pure__))
+void *HTT2_get(HTT2 *restrict htt, const char *restrict name);
+int HTT2_del(HTT2 *restrict htt, const char *restrict name);
+void HTT2_scan(HTT2 *restrict htt, void (*action)(void *));
+void HTT2_kill(HTT2 *restrict htt);
 
 #endif

@@ -36,7 +36,7 @@
 /*
  * hash_string() is a sample hash function for strings
  */
-int hash_string(char *s)
+int hash_string(const char *s)
 {
 #ifdef FAST_HASH
 	unsigned h = 0, g;
@@ -66,9 +66,9 @@ struct hash_item {
 /*
  * This function adds an entry to the struct hash_item list
  */
-static struct hash_item *add_entry(struct hash_item *blist, void *data)
+static struct hash_item *add_entry(struct hash_item *restrict blist, void *restrict data)
 {
-	struct hash_item *t = getmem(sizeof(struct hash_item));
+	struct hash_item *t = (struct hash_item *)getmem(sizeof(struct hash_item));
 
 	t->data = data;
 	t->next = blist;
@@ -82,7 +82,7 @@ static struct hash_item *add_entry(struct hash_item *blist, void *data)
  *
  * It returns 0 if the item is not found.
  */
-static struct hash_item *get_entry(struct hash_item *blist, void *data,
+static struct hash_item *get_entry(struct hash_item *restrict blist, void *restrict data,
 	int (*cmpdata)(void *, void *))
 {
 	while (blist) {
@@ -97,7 +97,7 @@ static struct hash_item *get_entry(struct hash_item *blist, void *data,
  * the provided function deldata(); it returns 0 if the given data was
  * not found.
  */
-static struct hash_item *del_entry(struct hash_item *blist, void *data,
+static struct hash_item *del_entry(struct hash_item *restrict blist, void *restrict data,
 	int (*cmpdata)(void *, void *), void (*deldata)(void *))
 {
 	struct hash_item *prev = 0, *save = blist;
@@ -139,7 +139,7 @@ struct HT *newHT(int n, int (*cmpdata)(void *, void *), int (*hash)(void *),
  * This function adds a new entry in the hashtable ht; it returns 0
  * on success, or a pointer to the already present item otherwise.
  */
-void *putHT(struct HT *ht, void *data)
+void *putHT(struct HT *restrict ht, void *restrict data)
 {
 	int h;
 	struct hash_item *d;
@@ -160,7 +160,7 @@ void *putHT(struct HT *ht, void *data)
  * The new entry will "hide" the old one, which means that the new will be
  * found upon lookup/delete, not the old one.
  */
-void *forceputHT(struct HT *ht, void *data)
+void *forceputHT(struct HT *restrict ht, void *restrict data)
 {
 	int h;
 
@@ -177,7 +177,7 @@ void *forceputHT(struct HT *ht, void *data)
  * hashtable ht (using the comparison function given as argument
  * to newHT)
  */
-void *getHT(struct HT *ht, void *data)
+void *getHT(struct HT *restrict ht, void *restrict data)
 {
 	int h;
 	struct hash_item *t;
@@ -197,7 +197,7 @@ void *getHT(struct HT *ht, void *data)
  * argument to newHT).
  */
 
-int delHT(struct HT *ht, void *data)
+int delHT(struct HT *restrict ht, void *restrict data)
 {
 	int h;
 
@@ -232,7 +232,7 @@ void killHT(struct HT *ht)
 /*
  * This function stores a backup of the hash table, for context stacking.
  */
-void saveHT(struct HT *ht, void **buffer)
+void saveHT(struct HT *restrict ht, void **restrict buffer)
 {
 	struct hash_item **b = (struct hash_item **)buffer;
 
@@ -244,7 +244,7 @@ void saveHT(struct HT *ht, void **buffer)
  * Do NOT use if some of the entries that were present before the backup
  * have been removed (even temporarily).
  */
-void restoreHT(struct HT *ht, void **buffer)
+void restoreHT(struct HT *restrict ht, void **restrict buffer)
 {
 	struct hash_item **b = (struct hash_item **)buffer;
 	int i;
@@ -267,7 +267,7 @@ void restoreHT(struct HT *ht, void **buffer)
  * tweaking the save buffer and the hash table in order to keep things
  * stable. There are no checks.
  */
-void tweakHT(struct HT *ht, void **buffer, void *data)
+void tweakHT(struct HT *restrict ht, void **restrict buffer, void *restrict data)
 {
 	int h;
 	struct hash_item *d, *e;
@@ -291,7 +291,7 @@ void tweakHT(struct HT *ht, void **buffer, void *data)
  * This function scans the whole table and calls the given function on
  * each entry.
  */
-void scanHT(struct HT *ht, void (*action)(void *))
+void scanHT(struct HT *restrict ht, void (*action)(void *))
 {
 	int i;
 

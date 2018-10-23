@@ -339,7 +339,7 @@ handle_unassert_warp:
 /*
  * Add the given assertion (as string).
  */
-int make_assertion(char *aval)
+int make_assertion(const char *aval)
 {
 	struct lexer_state lls;
 	size_t n = strlen(aval) + 1;
@@ -363,7 +363,7 @@ int make_assertion(char *aval)
 /*
  * Remove the given assertion (as string).
  */
-int destroy_assertion(char *aval)
+int destroy_assertion(const char *aval)
 {
 	struct lexer_state lls;
 	size_t n = strlen(aval) + 1;
@@ -406,7 +406,7 @@ void init_assertions(void)
 /*
  * retrieve an assertion from the hash table
  */
-struct assert *get_assertion(char *name)
+struct assert *get_assertion(const char *name)
 {
 	return HTT_get(&assertions, name);
 }

@@ -32,7 +32,7 @@
 
 #include <stdlib.h>
 
-void die(void);
+__attribute__((__noreturn__)) void die(void);
 
 #if defined AUDIT || defined MEM_CHECK || defined MEM_DEBUG
 void *getmem(size_t);
@@ -41,7 +41,7 @@ void *getmem(size_t);
 #endif
 
 #if defined MEM_DEBUG
-void *getmem_debug(size_t, char *, int);
+void *getmem_debug(size_t, const char *, int);
 #undef getmem
 #define getmem(x)	getmem_debug(x, __FILE__, __LINE__)
 #endif
@@ -53,20 +53,20 @@ void freemem(void *);
 #endif
 
 #if defined MEM_DEBUG
-void freemem_debug(void *, char *, int);
+void freemem_debug(void *, const char *, int);
 #undef freemem
 #define freemem(x)	freemem_debug(x, __FILE__, __LINE__)
 #endif
 
 void *incmem(void *, size_t, size_t);
-char *sdup(char *);
+char *sdup(const char *);
 
 #if defined MEM_DEBUG
-void *incmem_debug(void *, size_t, size_t, char *, int);
+void *incmem_debug(void *, size_t, size_t, const char *, int);
 #undef incmem
 #define incmem(x, y, z)	incmem_debug(x, y, z, __FILE__, __LINE__)
 void report_leaks(void);
-char *sdup_debug(char *, char *, int);
+char *sdup_debug(const char *, const char *, int);
 #define sdup(x)		sdup_debug(x, __FILE__, __LINE__)
 #endif
 

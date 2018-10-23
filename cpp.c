@@ -79,7 +79,7 @@ static int current_incdir = -1;
  * emitted by getmem() (in mem.c) if MEM_CHECK is defined, but this "ouch"
  * does not use this function.
  */
-void ucpp_ouch(char *fmt, ...)
+void ucpp_ouch(const char *restrict fmt, ...)
 {
 	va_list ap;
 
@@ -94,13 +94,13 @@ void ucpp_ouch(char *fmt, ...)
 /*
  * report an error, with current_filename, line, and printf-like syntax
  */
-void ucpp_error(long line, char *fmt, ...)
+void ucpp_error(long line, const char *restrict fmt, ...)
 {
 	va_list ap;
 
 	va_start(ap, fmt);
 	if (line > 0)
-		fprintf(stderr, "%s: line %ld: ", current_filename, line);
+		fprintf(stderr, "\033[1m%s:%ld:\033[0m \033[31;1merror:\033[0m", current_filename, line);
 	else if (line == 0) fprintf(stderr, "%s: ", current_filename);
 	vfprintf(stderr, fmt, ap);
 	fprintf(stderr, "\n");
@@ -120,13 +120,13 @@ void ucpp_error(long line, char *fmt, ...)
 /*
  * like error(), with the mention "warning"
  */
-void ucpp_warning(long line, char *fmt, ...)
+void ucpp_warning(long line, const char *restrict fmt, ...)
 {
 	va_list ap;
 
 	va_start(ap, fmt);
 	if (line > 0)
-		fprintf(stderr, "%s: warning: line %ld: ",
+		fprintf(stderr, "\033[1m%s:%ld:\033[0m \033[35;1mwarning:\033[0m",
 			current_filename, line);
 	else if (line == 0)
 		fprintf(stderr, "%s: warning: ", current_filename);
@@ -196,7 +196,7 @@ static void free_garbage_fifo(struct garbage_fifo *gf)
  * order is important: it must match the token-constants declared as an
  * enum in the header file.
  */
-char *operators_name[] = {
+const char *operators_name[] = {
 	" ", "\n", " ",
 	"0000", "name", "bunch", "pragma", "context",
 	"\"dummy string\"", "'dummy char'",
@@ -221,7 +221,8 @@ char *operators_name[] = {
 			: operators_name[(x).type])
 #endif
 
-char *token_name(struct token *t)
+__attribute__((__pure__))
+const char *token_name(struct token *t)
 {
 	return tname(*t);
 }
@@ -293,7 +294,7 @@ static void del_found_file_sys(void *m)
 struct protect protect_detect;
 static struct protect *protect_detect_stack = 0;
 
-void set_init_filename(char *x, int real_file)
+void set_init_filename(const char *x, int real_file)
 {
 	if (current_filename) freemem(current_filename);
 	current_filename = sdup(x);
@@ -598,7 +599,7 @@ int enter_file(struct lexer_state *ls, unsigned long flags)
 static void *find_file_map;
 static size_t map_length;
 
-FILE *fopen_mmap_file(char *name)
+FILE *fopen_mmap_file(const char *name)
 {
 	FILE *f;
 	int fd;
@@ -641,8 +642,25 @@ void set_input_file(struct lexer_state *ls, FILE *f)
 		ls->from_mmap = 0;
 	}
 }
-#endif
-
+#else /* !UCPP_MMAP */
+FILE *fopen_mmap_file(const char *filename)
+{
+	FILE *f;
+	if (filename == 0)
+		return 0;
+	f = fopen(filename, "r");
+	if (!f) {
+		return 0;
+	}
+	return f;
+}
+void set_input_file(struct lexer_state *ls, FILE *f)
+{
+	if (f == 0)
+		ouch("tried to set input to a null file");
+	ls->input = f;
+}
+#endif /* !UCPP_MMAP */
 /*
  * Find a file by looking through the include path.
  * return value: a FILE * on the file, opened in "r" mode, or 0.
@@ -657,13 +675,13 @@ static int find_file_error;
 
 enum { FF_ERROR, FF_PROTECT, FF_KNOWN, FF_UNKNOWN };
 
-static FILE *find_file(char *name, int localdir)
+static FILE *find_file(const char *name, int localdir)
 {
 	FILE *f;
 	int i, incdir = -1;
 	size_t nl = strlen(name);
 	char *s = 0;
-	struct found_file *ff = 0, *nff;
+	struct found_file *ff = NULL, *nff;
 	int lf = 0;
 	int nffa = 0;
 
@@ -889,7 +907,7 @@ found_file_2:
  * #include_next <foo> and #include_next "foo" are considered identical,
  * for all practical purposes.
  */
-static FILE *find_file_next(char *name)
+static FILE *find_file_next(const char *name)
 {
 	int i;
 	size_t nl = strlen(name);
@@ -1045,7 +1063,8 @@ static int handle_if(struct lexer_state *ls)
 	check_macro:
 		m = get_macro(tf.t[nidx].name);
 		rt.type = NUMBER;
-		rt.name = m ? "1L" : "0L";
+		rt.name = sdup(m ? "1L" : "0L");
+		throw_away(ls->gf, rt.name);
 		aol(tf1.t, tf1.nt, rt, TOKEN_LIST_MEMG);
 		tf.art = eidx + 1;
 	}
@@ -1122,7 +1141,8 @@ static int handle_if(struct lexer_state *ls)
 					break;
 				}
 			rt.type = NUMBER;
-			rt.name = av ? "1" : "0";
+			rt.name = sdup(av ? "1" : "0");
+			throw_away(ls->gf, rt.name);
 			aol(tf2.t, tf2.nt, rt, TOKEN_LIST_MEMG);
 			if (atl.nt) freemem(atl.t);
 			continue;
@@ -1130,7 +1150,8 @@ static int handle_if(struct lexer_state *ls)
 		assert_generic:
 			tf1.art = i;
 			rt.type = NUMBER;
-			rt.name = get_assertion(aname) ? "1" : "0";
+			rt.name = sdup(get_assertion(aname) ? "1" : "0");
+			throw_away(ls->gf, rt.name);
 			aol(tf2.t, tf2.nt, rt, TOKEN_LIST_MEMG);
 			continue;
 
@@ -1163,7 +1184,8 @@ static int handle_if(struct lexer_state *ls)
 			struct token rt;
 
 			rt.type = NUMBER;
-			rt.name = "0";
+			rt.name = sdup("0");
+			throw_away(ls->gf, rt.name);
 			aol(tf3.t, tf3.nt, rt, TOKEN_LIST_MEMG);
 			continue;
 		}
@@ -1723,15 +1745,13 @@ static int handle_cpp(struct lexer_state *ls, int sharp_type)
 			break;
 		default:
 			if (ls->flags & FAIL_SHARP) {
-                                /* LPS 20050602 - ignores '#!' if on the first line */
-                                if( ( l == 1 ) &&
-                                    ( ls->condcomp ) )
-                                {
+				/* LPS 20050602 - ignores '#!' if on the first line */
+				if( ( l == 1 ) &&
+					( ls->condcomp ) ) {
 					ret = 1;
-                                }
-                                else
-                                /* LPS 20050602 */
-				if (ls->condcomp) {
+				}
+				/* LPS 20050602 */
+				else if (ls->condcomp) {
 					error(l, "rogue '#'");
 					ret = 1;
 				} else {
@@ -2023,7 +2043,7 @@ int cpp(struct lexer_state *ls)
 		}
 		if (ls->ifnest) {
 			error(ls->line, "unterminated #if construction "
-				"(depth %ld)", ls->ifnest);
+				"(depth %d)", ls->ifnest);
 			r = CPPERR_NEST;
 		}
 		if (ls_depth == 0) return CPPERR_EOF;
@@ -2227,7 +2247,7 @@ void init_tables(int with_assertions)
 /*
  * Resets the include path.
  */
-void init_include_path(char *incpath[])
+void init_include_path(const char *incpath[])
 {
 	if (include_path_nb) {
 		size_t i;
@@ -2249,7 +2269,7 @@ void init_include_path(char *incpath[])
 /*
  * add_incpath() adds "path" to the standard include path.
  */
-void add_incpath(char *path)
+void add_incpath(const char *path)
 {
 	aol(include_path, include_path_nb, sdup(path), INCPATH_MEMG);
 }

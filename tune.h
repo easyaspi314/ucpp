@@ -244,11 +244,12 @@
 /*
  * For emulation of a 64-bit type using a native 32-bit "unsigned long"
  * type.
+ 
 #undef NATIVE_SIGNED
 #define SIMUL_ARITH_SUBTYPE     unsigned long
 #define SIMUL_SUBTYPE_BITS      32
 #define SIMUL_NUMBITS           64
- */
+*/
 
 /*
  * Comment out the following line if you want to deactivate arithmetic

@@ -41,7 +41,8 @@
  * type is big enough to hold 32-bit arbitrary numbers, a 16-bit number
  * otherwise.
  */
-static unsigned hash_string(char *name)
+__attribute__((__pure__))
+static unsigned hash_string(const char *name)
 {
 	unsigned h = 0;
 
@@ -86,7 +87,7 @@ static unsigned hash_string(char *name)
  * lest significant bits of their hash value.
  */
 
-static void internal_init(HTT *htt, void (*deldata)(void *), int reduced)
+static void internal_init(HTT *restrict htt, void (*deldata)(void *), int reduced)
 {
 	htt->deldata = deldata;
 	if (reduced) {
@@ -101,13 +102,13 @@ static void internal_init(HTT *htt, void (*deldata)(void *), int reduced)
 }
 
 /* see nhash.h */
-void HTT_init(HTT *htt, void (*deldata)(void *))
+void HTT_init(HTT *restrict htt, void (*deldata)(void *))
 {
 	internal_init(htt, deldata, 0);
 }
 
 /* see nhash.h */
-void HTT2_init(HTT2 *htt, void (*deldata)(void *))
+void HTT2_init(HTT2 *restrict htt, void (*deldata)(void *))
 {
 	internal_init((HTT *)htt, deldata, 1);
 }
@@ -158,7 +159,8 @@ static hash_item_header *find_node(HTT *htt, unsigned u,
 	return node;
 }
 
-static void *internal_get(HTT *htt, char *name, int reduced)
+__attribute__((__pure__))
+static void *internal_get(HTT *htt, const char *name, int reduced)
 {
 	unsigned u = hash_string(name), v;
 	hash_item_header *node = find_node(htt, u, NULL, NULL, reduced);
@@ -177,13 +179,13 @@ static void *internal_get(HTT *htt, char *name, int reduced)
 }
 
 /* see nhash.h */
-void *HTT_get(HTT *htt, char *name)
+void *HTT_get(HTT *restrict htt, const char *restrict name)
 {
 	return internal_get(htt, name, 0);
 }
 
 /* see nhash.h */
-void *HTT2_get(HTT2 *htt, char *name)
+void *HTT2_get(HTT2 *restrict htt, const char *restrict name)
 {
 	return internal_get((HTT *)htt, name, 1);
 }
@@ -191,7 +193,7 @@ void *HTT2_get(HTT2 *htt, char *name)
 /*
  * Make an item identifier from its name and its hash value.
  */
-static char *make_ident(char *name, unsigned u)
+static char *make_ident(const char *name, unsigned u)
 {
 	size_t n = strlen(name) + 1;
 	char *ident = getmem(n + sizeof(unsigned));
@@ -223,7 +225,7 @@ static char *make_fake_ident(unsigned u, hash_item_header *next)
  *     3.2. if the node is fake, look for the name in the list; if not found,
  *          add the node at the list end
  */
-static void *internal_put(HTT *htt, void *item, char *name, int reduced)
+static void *internal_put(HTT *restrict htt, void *restrict item, const char *restrict name, int reduced)
 {
 	unsigned u = hash_string(name), v;
 	int ls;
@@ -277,13 +279,13 @@ static void *internal_put(HTT *htt, void *item, char *name, int reduced)
 }
 
 /* see nhash.h */
-void *HTT_put(HTT *htt, void *item, char *name)
+void *HTT_put(HTT *restrict htt, void *restrict item, const char *restrict name)
 {
 	return internal_put(htt, item, name, 0);
 }
 
 /* see nhash.h */
-void *HTT2_put(HTT2 *htt, void *item, char *name)
+void *HTT2_put(HTT2 *restrict htt, void *restrict item, const char *restrict name)
 {
 	return internal_put((HTT *)htt, item, name, 1);
 }
@@ -297,8 +299,8 @@ void *HTT2_put(HTT2 *htt, void *item, char *name)
  *   leftson  1 if the fake node is a left son, 0 otehrwise
  *   u        the hash value for this node
  */
-static void shrink_node(HTT *htt, hash_item_header *fnode,
-	hash_item_header *node, hash_item_header *father, int leftson,
+static void shrink_node(HTT *restrict htt, hash_item_header *restrict fnode,
+	hash_item_header *restrict node, hash_item_header *restrict father, int leftson,
 	unsigned u, int reduced)
 {
 	node->left = fnode->left;
@@ -327,7 +329,7 @@ static void shrink_node(HTT *htt, hash_item_header *fnode,
  *     3.2. delete the correct item
  *     3.3. if there remains only one item, supress the fake node
  */
-static int internal_del(HTT *htt, char *name, int reduced)
+static int internal_del(HTT *restrict htt, const char *restrict name, int reduced)
 {
 	unsigned u = hash_string(name), v;
 	int ls;
@@ -399,13 +401,13 @@ static int internal_del(HTT *htt, char *name, int reduced)
 }
 
 /* see nhash.h */
-int HTT_del(HTT *htt, char *name)
+int HTT_del(HTT *restrict htt, const char *restrict name)
 {
 	return internal_del(htt, name, 0);
 }
 
 /* see nhash.h */
-int HTT2_del(HTT2 *htt, char *name)
+int HTT2_del(HTT2 *restrict htt, const char *restrict name)
 {
 	return internal_del((HTT *)htt, name, 1);
 }
@@ -415,7 +417,7 @@ int HTT2_del(HTT2 *htt, char *name)
  * parameter `node'. If `wipe' is non-zero, the nodes are removed
  * from memory.
  */
-static void scan_node(hash_item_header *node, void (*action)(void *), int wipe)
+static void scan_node(hash_item_header *restrict node, void (*action)(void *), int wipe)
 {
 	unsigned v;
 
@@ -447,7 +449,7 @@ static void scan_node(hash_item_header *node, void (*action)(void *), int wipe)
 }
 
 /* see nhash.h */
-void HTT_scan(HTT *htt, void (*action)(void *))
+void HTT_scan(HTT *restrict htt, void (*action)(void *))
 {
 	unsigned u;
 
@@ -457,14 +459,14 @@ void HTT_scan(HTT *htt, void (*action)(void *))
 }
 
 /* see nhash.h */
-void HTT2_scan(HTT2 *htt, void (*action)(void *))
+void HTT2_scan(HTT2 *restrict htt, void (*action)(void *))
 {
 	scan_node(htt->tree[0], action, 0);
 	scan_node(htt->tree[1], action, 0);
 }
 
 /* see nhash.h */
-void HTT_kill(HTT *htt)
+void HTT_kill(HTT *restrict htt)
 {
 	unsigned u;
 
@@ -474,7 +476,7 @@ void HTT_kill(HTT *htt)
 }
 
 /* see nhash.h */
-void HTT2_kill(HTT2 *htt)
+void HTT2_kill(HTT2 *restrict htt)
 {
 	scan_node(htt->tree[0], htt->deldata, 1);
 	scan_node(htt->tree[1], htt->deldata, 1);

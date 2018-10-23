@@ -92,7 +92,7 @@ enum {
  * returns x > 1 for a special macro such as __FILE__
  * returns 0 otherwise
  */
-static inline int check_special_macro(char *name)
+static inline int check_special_macro(const char *name)
 {
 	if (!strcmp(name, "defined")) return MAC_DEFINED;
 	if (*name != '_') return MAC_NONE;
@@ -254,7 +254,7 @@ static void print_macro(void *vm)
  */
 void print_token(struct lexer_state *ls, struct token *t, long uz_line)
 {
-	char *x = t->name;
+	const char *x = t->name;
 
 	if (uz_line && t->line < 0) t->line = uz_line;
 	if (ls->flags & LEXER) {
@@ -283,7 +283,7 @@ void print_token(struct lexer_state *ls, struct token *t, long uz_line)
 static void print_token_nailed(struct lexer_state *ls, struct token *t,
 	long nail_line)
 {
-	char *x = t->name;
+	const char *x = t->name;
 
 	if (ls->flags & LEXER) {
 		print_token(ls, t, 0);
@@ -521,7 +521,10 @@ int handle_define(struct lexer_state *ls)
 					break;
 				}
 		}
-		if (!redef && S_TOKEN(t.type)) t.name = sdup(ls->ctok->name);
+		if (!redef && S_TOKEN(t.type)) {
+			t.name = sdup(ls->ctok->name);
+			throw_away(ls->gf, t.name);
+		}
 		if (ttMWS(t.type)) {
 			if (ltwws) continue;
 #ifdef SEMPER_FIDELIS
@@ -653,7 +656,6 @@ define_end:
 
 				mmv(m->cval.t + l, mval.t[i].name, x);
 				l += x;
-				freemem(mval.t[i].name);
 			}
 			else if (mval.t[i].type == MACROARG) {
 				unsigned anum = mval.t[i].line;
@@ -857,7 +859,7 @@ struct lexer_state dsharp_lexer;
 
 static inline int concat_token(struct token *t1, struct token *t2)
 {
-	char *n1 = token_name(t1), *n2 = token_name(t2);
+	const char *n1 = token_name(t1), *n2 = token_name(t2);
 	size_t l1 = strlen(n1), l2 = strlen(n2);
 	unsigned char *x = getmem(l1 + l2 + 1);
 	int r;
@@ -1028,7 +1030,7 @@ int substitute_macro(struct lexer_state *ls, struct macro *m,
 	struct token_fifo *tfi, int penury, int reject_nested, long l)
 {
 	char *mname = HASH_ITEM_NAME(m);
-	struct token_fifo *atl, etl;
+	struct token_fifo *atl = NULL, etl;
 	struct token t, *ct;
 	int i, save_nest = m->nest;
 	size_t save_art, save_tfi, etl_limit;
@@ -1111,7 +1113,7 @@ int substitute_macro(struct lexer_state *ls, struct macro *m,
 		case MAC_STDC:
 			t.type = NUMBER;
 			t.line = l;
-			t.name = "1";
+			t.name = sdup("1");
 			print_space(ls);
 			print_token(ls, &t, 0);
 			break;
@@ -1211,7 +1213,7 @@ collect_args:
 	 * output, and exactly as many times as it appears. Therefore,
 	 * _Pragma() will get evaluated just like they should.
 	 */
-			char *c = atl[0].t[0].name, *d;
+			const char *c = atl[0].t[0].name, *d;
 
 			for (d = "\n#pragma "; *d; d ++) put_char(ls, *d);
 			d = (*c == 'L') ? c + 2 : c + 1;
@@ -1675,7 +1677,7 @@ void print_defines(void)
  *
  * It returns non-zero on error.
  */
-int define_macro(struct lexer_state *ls, char *def)
+int define_macro(struct lexer_state *restrict ls, const char *restrict def)
 {
 	char *c = sdup(def), *d;
 	int with_def = 0;
@@ -1754,9 +1756,9 @@ int define_macro(struct lexer_state *ls, char *def)
  * It returns non-zero on error (undefinition of a special macro,
  * void macro name).
  */
-int undef_macro(struct lexer_state *ls, char *def)
+int undef_macro(struct lexer_state *restrict ls, const char *restrict def)
 {
-	char *c = def;
+	const char *c = def;
 
 	if (!*c) {
 		error(-1, "void macro name");
@@ -1915,7 +1917,7 @@ void init_macros(void)
 /*
  * find a macro from its name
  */
-struct macro *get_macro(char *name)
+struct macro *get_macro(const char *name)
 {
 	return HTT_get(&macros, name);
 }

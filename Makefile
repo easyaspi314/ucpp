@@ -57,7 +57,7 @@
 
 # for gcc
 CC = gcc
-FLAGS = -O3 -W -Wall -ansi
+FLAGS = -O3 -W -Wall -std=gnu99 -Werror=write-strings -Wextra
 #FLAGS = -g -W -Wall -ansi -DAUDIT -DMEM_DEBUG
 #FLAGS = -O3 -mcpu=pentiumpro -fomit-frame-pointer -W -Wall -ansi -DMEM_CHECK
 #FLAGS = -O -pg -W -Wall -ansi -DMEM_CHECK
@@ -90,26 +90,28 @@ endif
 COBJ = mem.o nhash.o cpp.o lexer.o assert.o macro.o eval.o
 CFLAGS = $(FLAGS)
 
-all: ucpp
-	@ar cq libucpp.a *.o
+all: ucpp libucpp.a
+
+libucpp.a: $(COBJ)
+	ar cq libucpp.a *.o
 
 clean:
 	@rm -f *.o ucpp core *.a
 
 ucpp: $(COBJ)
-	@$(FINAL_STEP)
+	$(FINAL_STEP)
 
-assert.o: tune.h ucppi.h cpp.h nhash.h mem.h
-	@$(CC) $(CFLAGS) -c assert.c
-cpp.o: tune.h ucppi.h cpp.h nhash.h mem.h
-	@$(CC) $(CFLAGS) -c cpp.c
-eval.o: tune.h ucppi.h cpp.h nhash.h mem.h arith.c arith.h
-	@$(CC) $(CFLAGS) -c eval.c
-lexer.o: tune.h ucppi.h cpp.h nhash.h mem.h
-	@$(CC) $(CFLAGS) -c lexer.c
-macro.o: tune.h ucppi.h cpp.h nhash.h mem.h
-	@$(CC) $(CFLAGS) -c macro.c
-mem.o: mem.h
-	@$(CC) $(CFLAGS) -c mem.c
-nhash.o: nhash.h mem.h
-	@$(CC) $(CFLAGS) -c nhash.c
+assert.o: assert.c tune.h ucppi.h cpp.h nhash.h mem.h
+	$(CC) $(CFLAGS) -c assert.c
+cpp.o: cpp.c tune.h ucppi.h cpp.h nhash.h mem.h
+	$(CC) $(CFLAGS) -c cpp.c
+eval.o: eval.c tune.h ucppi.h cpp.h nhash.h mem.h arith.c arith.h
+	$(CC) $(CFLAGS) -c eval.c
+lexer.o: lexer.c tune.h ucppi.h cpp.h nhash.h mem.h
+	$(CC) $(CFLAGS) -c lexer.c
+macro.o: macro.c tune.h ucppi.h cpp.h nhash.h mem.h
+	$(CC) $(CFLAGS) -c macro.c
+mem.o: mem.c mem.h
+	$(CC) $(CFLAGS) -c mem.c
+nhash.o: nhash.c nhash.h mem.h
+	$(CC) $(CFLAGS) -c nhash.c

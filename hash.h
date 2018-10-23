@@ -40,18 +40,18 @@ struct HT {
 	void (*deldata)(void *);
 };
 
-int hash_string(char *);
+int hash_string(const char *);
 struct HT *newHT(int, int (*)(void *, void *), int (*)(void *),
 	void (*)(void *));
-void *putHT(struct HT *, void *);
-void *forceputHT(struct HT *, void *);
-void *getHT(struct HT *, void *);
-int delHT(struct HT *, void *);
+void *putHT(struct HT *restrict, void *restrict);
+void *forceputHT(struct HT *restrict, void *restrict);
+void *getHT(struct HT *restrict, void *restrict);
+int delHT(struct HT *restrict, void *restrict);
 void killHT(struct HT *);
-void saveHT(struct HT *, void **);
-void restoreHT(struct HT *, void **);
-void tweakHT(struct HT *, void **, void *);
-void scanHT(struct HT *, void (*)(void *));
+void saveHT(struct HT *restrict, void **restrict);
+void restoreHT(struct HT *restrict, void **restrict);
+void tweakHT(struct HT *restrict, void **restrict, void *restrict);
+void scanHT(struct HT *restrict, void (*)(void *));
 int hash_struct(void *);
 int cmp_struct(void *, void *);
 

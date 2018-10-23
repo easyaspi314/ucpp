@@ -196,13 +196,13 @@ static int boolval(ppval x)
  * unsigned: u U ul uL Ul UL lu Lu lU LU ull uLL Ull ULL llu LLu llU LLU
  * signed: l L ll LL
  */
-static int pp_suffix(char *d, char *refc)
+static int pp_suffix(const char *d, const char *refc)
 {
 	if (!*d) return 1;
 	if (*d == 'u' || *d == 'U') {
 		if (!*(++ d)) return 0;
 		if (*d == 'l' || *d == 'L') {
-			char *e = d + 1;
+			const char *e = d + 1;
 
 			if (*e && *e != *d) goto suffix_error;
 			if (!*e || !*(e + 1)) return 0;
@@ -228,7 +228,7 @@ suffix_error:
 	return 666;
 }
 
-static unsigned long pp_char(char *c, char *refc)
+static unsigned long pp_char(const char *c, const char *refc)
 {
 	unsigned long r = 0;
 
@@ -298,10 +298,10 @@ static unsigned long pp_char(char *c, char *refc)
 	return r;
 }
 
-static ppval pp_strtoconst(char *refc)
+static ppval pp_strtoconst(const char *refc)
 {
 	ppval q;
-	char *c = refc, *d;
+	const char *c = refc, *d;
 	u_big ru;
 	s_big rs;
 	int sp, dec;
@@ -360,7 +360,7 @@ static ppval pp_strtoconst(char *refc)
  * Used by #line directives -- anything beyond what can be put in an
  * unsigned long, is considered absurd.
  */
-unsigned long strtoconst(char *c)
+unsigned long strtoconst(const char *c)
 {
 	ppval q = pp_strtoconst(c);
 
